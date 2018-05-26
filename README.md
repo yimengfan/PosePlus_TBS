@@ -2,7 +2,7 @@
 ### 本项目为PosePlus的回合制战斗游戏实现,PosePlus 持续维护中
 ## 附送如下大礼包：  
 1.PosePlus持续维护版本  
-2.基于BDFrameWork的项目实现：https://github.com/yimengfan/BDFramework.Core  
+2.基于BDFrameWork的项目实现：https://github.com/yimengfan/BDFramework.Core  觉得舒爽帮忙start~
 3.TBS类游戏的简单demo：技能编辑器, 回合制战斗管理,等    
 ## 注意事项：
 I.因本项目为商业项目，所以只做部分解决方案开源，自行解决资源问题。  
