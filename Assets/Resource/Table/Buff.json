@@ -1,0 +1,1 @@
+﻿[{"Id":1.0,"BuffType":1.0,"CD":1.0,"LifeTime":1.0,"Des":"猛击一次","Params_StrValue":["hp"],"Params_Formula":["attack*1.5"],"Params_NumValue":[-20],"Effect":1111.0}]
