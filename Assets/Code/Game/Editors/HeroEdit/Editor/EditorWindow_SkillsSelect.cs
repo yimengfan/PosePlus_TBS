@@ -1,42 +1,42 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEditor;
 using Game.Data;
+using Mono.CompilerServices.SymbolWriter;
+using UnityEditor.Graphs;
+
 public class EditorWindow_SkillsSelect : EditorWindow
 {
-    private Dictionary<int, List<Skill>> skillList = new Dictionary<int, List<Skill>>();
-
-    private Dictionary<int, Vector2> selectPosDic = new Dictionary<int, Vector2>();
+    private List<object> skillList;
 
     private List<double> selectList;
 
-    public void Awake()
-    {
-        Editor_TableTool.GetData_SkillData(ref skillList, "Skill");
-        selectList = EditorWindows_CreateHero.handle.Skills;
-    }
+    private Type _target;
+    private object _aimObj;
+    private TableConfig _cfg;
 
+
+    public void Show<T>(object aimObj,TableConfig cfg)
+    {
+        this._aimObj = aimObj;
+        this._cfg = cfg;
+        Type t = aimObj.GetType();
+        PropertyInfo pi = t.GetProperty(cfg.Name);
+        selectList = (List<double>) pi.GetValue(aimObj);
+        skillList = Editor_TableTool.GetData<T>();
+        base.Show();
+    }
     private void OnGUI()
     {
         GUILayout.BeginVertical(GUILayout.Width(1000), GUILayout.Height(800));
-        //OnGUI_EditorButton();
         OnGUI_SkillList();
         GUILayout.EndVertical();
         TableToolMenu.Layout_DrawSeparatorV(Color.gray, 2);
     }
-
-    //private void OnGUI_EditorButton()
-    //{
-    //    GUILayout.BeginHorizontal(GUILayout.Width(1000));
-    //    if (GUILayout.Button("保存", GUILayout.Width(100), GUILayout.Height(50)))
-    //    {
-    //        selectList.Sort();
-    //        EditorWindows_CreateHero.handle.SkillBlocks = selectList;
-    //    }
-    //    GUILayout.EndHorizontal();
-    //    TableToolMenu.Layout_DrawSeparator(Color.gray, 2);
-    //}
 
     Vector2 windowSelectPosition = Vector2.zero;
 
@@ -45,9 +45,9 @@ public class EditorWindow_SkillsSelect : EditorWindow
         GUILayout.BeginVertical();
         windowSelectPosition = GUILayout.BeginScrollView(windowSelectPosition, GUILayout.Width(1010), GUILayout.Height(800));
         {
-            foreach (KeyValuePair<int, List<Skill>> kv in skillList)
+            foreach (object obj in skillList)
             {
-                OnGUI_SkillScrollView(kv);
+                OnGUI_EditorSkillItem(obj);
             }
         }
         GUILayout.EndScrollView();
@@ -55,55 +55,34 @@ public class EditorWindow_SkillsSelect : EditorWindow
         GUILayout.EndVertical();
     }
 
-    private void OnGUI_SkillScrollView(KeyValuePair<int, List<Skill>> kv)
+    private void OnGUI_EditorSkillItem(object o)
     {
         GUILayout.BeginHorizontal();
-        Vector2 selectPos;
-        if (!selectPosDic.TryGetValue(kv.Key, out selectPos))
-        {
-            selectPos = Vector2.zero;
-            selectPosDic.Add(kv.Key, selectPos);
-        }
-        selectPosDic[kv.Key] = GUILayout.BeginScrollView(selectPos, GUILayout.Width(1000), GUILayout.Height(200));
-        {
-            GUILayout.BeginHorizontal(GUILayout.Width(200), GUILayout.Height(200));
-            for (int i = 0; i < kv.Value.Count; i++)
-            {
-                OnGUI_EditorSkillItem(kv.Value[i]);
-            }
-            GUILayout.EndHorizontal();
-        }
-        GUILayout.EndScrollView();
-        TableToolMenu.Layout_DrawSeparator(Color.gray, 2);
-        GUILayout.EndHorizontal();
-    }
-
-
-    private void OnGUI_EditorSkillItem(Skill h)
-    {
-        GUILayout.BeginHorizontal();
-        OnGUI_EditorSkillItemToggle(h);
+        OnGUI_EditorSkillItemToggle(o);
         GUILayout.BeginVertical();
-        DrawTableType.DrawDisplayWindow(h);
+        DrawTableType.DrawDisplayWindow(o);
         GUILayout.EndVertical();
         GUILayout.EndHorizontal();
         TableToolMenu.Layout_DrawSeparatorV(Color.gray, 2);
     }
 
-    private void OnGUI_EditorSkillItemToggle(Skill h)
+    private void OnGUI_EditorSkillItemToggle(object o)
     {
-        bool isSelect = selectList.Contains(h.Id);
+        if ((string.IsNullOrEmpty(this._cfg.ForeignKey))) return;
+        string match = this._cfg.ForeignKey.Substring(this._cfg.ForeignKey.LastIndexOf(".")+1);
+        PropertyInfo pi = o.GetType().GetProperty(match);
+        double matchId = (double) pi.GetValue(o);
+        bool isSelect = selectList.Contains(matchId);
         isSelect = GUILayout.Toggle(isSelect, "");
-        if (isSelect && !selectList.Contains(h.Id))
+        if (isSelect && !selectList.Contains(matchId))
         {
-            selectList.Add(h.Id);
+            selectList.Add(matchId);
         }
-        if (!isSelect && selectList.Contains(h.Id))
+        if (!isSelect && selectList.Contains(matchId))
         {
-            selectList.Remove(h.Id);
+            selectList.Remove(matchId);
         }
 
     }
-
 
 }

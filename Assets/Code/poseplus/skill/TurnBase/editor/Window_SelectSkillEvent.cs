@@ -34,7 +34,8 @@ public class Window_SelectSkillEvent : EditorWindow
                 SkillEvent se = new SkillEvent();
                 se.EventName = attribute.Name;
                 se.FrameId = this._curFrame;
-                this._curBlock.Events.Insert(0,se);
+                this._curBlock.Events.Add(se);
+                this._curSkillEventList.Add(se);
                 this.Close();
             }
         }
@@ -42,11 +43,13 @@ public class Window_SelectSkillEvent : EditorWindow
 
     private int _curFrame;
     private SkillBlock _curBlock;
+    private List<SkillEvent> _curSkillEventList;
 
-    public void Show(int frame, SkillBlock sb)
+    public void Show(int frame, SkillBlock sb,List<SkillEvent> curSkillEventList)
     {
         this._curBlock = sb;
         this._curFrame = frame;
+        this._curSkillEventList = curSkillEventList;
         this.Show();
     }
 

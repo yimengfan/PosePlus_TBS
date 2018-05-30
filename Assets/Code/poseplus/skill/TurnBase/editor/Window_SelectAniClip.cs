@@ -9,18 +9,12 @@ public class Window_SelectAniClip : EditorWindow
 {
     private List<SkillBlock> _skillBlocks;
 
-    private int _index;
-
-    //private List<AniClip> _aniClips;
     private AniPlayer _ani;
 
-    public void Show(List<SkillBlock> blocks, int index, AniPlayer ani)
+    public void Show(List<SkillBlock> blocks, AniPlayer ani)
     {
         this._ani = ani;
         this._skillBlocks = blocks;
-        this._index = index;
-        //this._aniClips = ani.clips;
-        this._curClip = ani.clips[0];
         this.Show();
     }
 
@@ -53,14 +47,16 @@ public class Window_SelectAniClip : EditorWindow
     private void DrawAniClipItem(AniClip clip)
     {
         GUILayout.BeginHorizontal(GUILayout.Width(300));
-        if (this._curClip == null) return;
-        if (this._curClip.name == clip.name)
+        if (this._curClip != null)
         {
-            GUI.color = Color.green;
-        }
-        else
-        {
-            GUI.color = Color.white;
+            if (this._curClip.name == clip.name)
+            {
+                GUI.color = Color.green;
+            }
+            else
+            {
+                GUI.color = Color.white;
+            }
         }
 
         if (GUILayout.Button(clip.name))
@@ -73,8 +69,8 @@ public class Window_SelectAniClip : EditorWindow
         {
             SkillBlock sb = new SkillBlock();
             sb.AniName = clip.name;
-            sb.Events = new List<SkillEvent>();
-            this._skillBlocks.Insert(this._index, sb);
+            if(this._skillBlocks == null )this._skillBlocks = new List<SkillBlock>();
+            this._skillBlocks.Add(sb);
             this.Close();
         }
 
@@ -86,7 +82,7 @@ public class Window_SelectAniClip : EditorWindow
     private void ShowCurFrame()
     {
         GUILayout.BeginVertical();
-        if (this._curClip)
+        if (this._curClip!=null)
         {
             this.ShowClipFrame(this._curClip);
         }

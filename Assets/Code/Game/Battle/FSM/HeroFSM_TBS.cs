@@ -34,6 +34,8 @@ namespace Code.Game.Battle
             inputProcessMap["UseSkill"] = OnUseSkill;
         }
 
+        public int ID { get; set; }
+
         /// <summary>
         /// 阵营
         /// </summary>

@@ -21,7 +21,8 @@ public class FbxAnimCutPost : AssetPostprocessor
             var lines = File.ReadAllLines(ClipText);
             foreach (string file in  lines)
             {
-                ParseAnimFile(file,  list);
+				ModelImporterClipAnimation node = ParseAnimFile(file);
+				if(node!=null) list.Add(node);
             }
 
             ModelImporter modelImporter = assetImporter as ModelImporter;
@@ -30,9 +31,9 @@ public class FbxAnimCutPost : AssetPostprocessor
         }
     }
 
-    static void ParseAnimFile(string lineStr,    List<ModelImporterClipAnimation> list )
+    static ModelImporterClipAnimation ParseAnimFile(string lineStr )
     {
-        if(string.IsNullOrEmpty(lineStr)) return;
+        if(string.IsNullOrEmpty(lineStr))  return null;
         
         lineStr = lineStr.Replace(" ", "").Replace("：", ":");
        // Debug.Log(lineStr);
@@ -46,11 +47,12 @@ public class FbxAnimCutPost : AssetPostprocessor
             clip.firstFrame = float.Parse(hArr[0]);
             clip.lastFrame = float.Parse(hArr[1]);  
             clip.name = colonArr[0];
-            list .Add(clip);
+            return clip;
         }
         catch (Exception e)
         {
             Debug.LogError("该行数据出错,请检查中英文标点等:" + lineStr);
+			return null;
         }
       
     }

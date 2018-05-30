@@ -21,4 +21,6 @@ public class TableConfig
     public List<string> ParameterList { get; set; }
 
     public float UIWidth { get; set; }
+    
+    public string ForeignKey { get; set; }
 }

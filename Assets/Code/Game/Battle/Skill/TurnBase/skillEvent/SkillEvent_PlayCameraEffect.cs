@@ -32,7 +32,7 @@ namespace Game.Battle.Skill
         {
 
             selfFSM.HeroGraphic.Trans.DOKill();
-            var pos = battle.World.GetPlayerPos(selfFSM.HeroLogic.ID);
+            var pos = battle.World.GetPlayerPos(selfFSM.ID);
             selfFSM.HeroGraphic.Trans.DOMove(pos , (float)this.skillEvent.DoubleParams0 / 30f);
         }
     }

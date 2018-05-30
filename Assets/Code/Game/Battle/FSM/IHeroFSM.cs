@@ -4,6 +4,7 @@ namespace Code.Game.Battle
 {
     public interface IHeroFSM
     {
+        int ID { get; set; }
         int Camp { get; }
         IHeroLogic HeroLogic { get; }
         IHeroGraphic HeroGraphic { get; }

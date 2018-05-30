@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 namespace Game.Battle
 {
     /// <summary>
@@ -33,6 +35,9 @@ namespace Game.Battle
             return Vector3.zero;
         }
 
+        
+        List<Transform> palyersPosTransformList =  new List<Transform>();
+        List<Transform> campCenterTransformList =  new List<Transform>();
         public void Load()
         {   
             //重置pos
@@ -43,10 +48,54 @@ namespace Game.Battle
             this.Transform.SetParent(Client.SceneRoot , false);
             var playesPosTrans = this.Transform.Find("PlayerPos");
 
-            foreach (Transform p in playesPosTrans)
+            if (playesPosTrans != null)
             {
-              this.playersPos.Add(p.position);   
+                foreach (Transform t in playesPosTrans)
+                {
+                    this.playersPos.Add(t.position);  
+                    palyersPosTransformList.Add(t);
+                }
             }
+            else
+            {          
+                Debug.LogError("该场景没有指定【玩家坐标点】,请速速添加~");        
+            }
+            
+            var campCenterTrans = this.Transform.Find("CampCenter");
+            if (campCenterTrans != null)
+            {
+                foreach (Transform t in campCenterTrans)
+                {
+                    campCenterTransformList.Add(t);
+                }
+            }
+            else
+            {
+                 Debug.LogError("该场景没有指定【队伍中心点】,请速速添加~");                     
+            }
+        }
+
+        public Transform GetCampCenterTransform(int camp)
+        {
+            camp -= 1;
+
+            if (camp < campCenterTransformList.Count)
+            {
+                return campCenterTransformList[camp];
+            }
+            return null;
+        }
+
+        public Transform GetPlayerRootTransform(int index)
+        {
+
+            index -= 1;
+            if (index < palyersPosTransformList.Count)
+            {
+                return palyersPosTransformList[index];
+            }
+
+            return null;
         }
 
         public void Destroy()

@@ -4,6 +4,7 @@ using BDFramework.Editor;
 using Code.Game.Battle;
 using Game.Battle;
 using Game.Data;
+using LitJson;
 using SQLite4Unity3d;
 using UnityEditor;
 using UnityEngine;
@@ -28,7 +29,6 @@ public class BattleTest : MonoBehaviour
 
             CreateBattle();
         }
-        
     }
 
     private string myId = "1";
@@ -143,23 +143,23 @@ public class BattleTest : MonoBehaviour
         {
             if (GUILayout.Button("[技]被动", GUILayout.Width(300), GUILayout.Height(80)))
             {
-                
+                battle.Input.EnqueueCmd(new Cmd("UseSkill" ,  new List<object>(){1,6,0}));
             }
             if (GUILayout.Button("[技]普攻", GUILayout.Width(300), GUILayout.Height(80)))
             {
-                
+                battle.Input.EnqueueCmd(new Cmd("UseSkill" ,  new List<object>(){1,6,1}));
             }
             if (GUILayout.Button("[技]技能 1", GUILayout.Width(300), GUILayout.Height(80)))
             {
-                battle.Input.EnqueueCmd(new Cmd("UseSkill" ,  new List<object>(){1,6,1}));
+                battle.Input.EnqueueCmd(new Cmd("UseSkill" ,  new List<object>(){1,6,2}));
             }
             if (GUILayout.Button("[技]技能 2", GUILayout.Width(300), GUILayout.Height(80)))
             {
-                battle.Input.EnqueueCmd(new Cmd("UseSkill" ,  new List<object>(){1,6,2}));
+                battle.Input.EnqueueCmd(new Cmd("UseSkill" ,  new List<object>(){1,6,3}));
             }
             if (GUILayout.Button("[技]技能 3", GUILayout.Width(300), GUILayout.Height(80)))
             {
-                battle.Input.EnqueueCmd(new Cmd("UseSkill" ,  new List<object>(){1,6,3}));
+                battle.Input.EnqueueCmd(new Cmd("UseSkill" ,  new List<object>(){1,6,4}));
             }
         }
         GUILayout.EndVertical();

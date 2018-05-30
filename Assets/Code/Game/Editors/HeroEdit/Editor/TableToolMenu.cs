@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Game.Data;
 using UnityEngine;
 using UnityEditor;
 
@@ -16,13 +17,13 @@ public class TableToolMenu
     public static void OpenEditorWindow_CreateHero()
     {
         var window = (EditorWindows_CreateHero)EditorWindow.GetWindow(typeof(EditorWindows_CreateHero), false, "Hero表编辑");
-        window.Show();
+        window.Show<Hero>();
     }
 
-    public static void OpenEditorWindow_SkillsSelect()
+    public static void OpenEditorWindow_SkillsSelect(object obj,TableConfig cfg)
     {
         var window = (EditorWindow_SkillsSelect)EditorWindow.GetWindow(typeof(EditorWindow_SkillsSelect), false, "选择skill");
-        window.Show();
+        window.Show<Skill>(obj,cfg);
     }
 
     public static void OpenEditorWindow_BuffsSelect()

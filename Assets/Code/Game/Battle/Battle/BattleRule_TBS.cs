@@ -41,10 +41,10 @@ namespace Game.Battle
             var players = battle.GetHeroes(operationList.ToArray());
             players.Sort((a, b) => { return a.HeroLogic.GetAttribute("speed") > b.HeroLogic.GetAttribute("speed") ? 1 : -1; });
 
-            battle.State.SetData("CanOperation", players[0].HeroLogic.ID);
+            battle.State.SetData("CanOperation", players[0].ID);
 
 
-            operationList.Remove(players[0].HeroLogic.ID);
+            operationList.Remove(players[0].ID);
             if (operationList.Count == 0)
             {
                 operationList = null;

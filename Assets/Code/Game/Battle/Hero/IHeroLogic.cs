@@ -8,8 +8,6 @@ namespace Game.Battle
 {
     public interface IHeroLogic
     {
-
-        int ID { get; set; }
         /// <summary>
         /// 英雄数据
         /// </summary>

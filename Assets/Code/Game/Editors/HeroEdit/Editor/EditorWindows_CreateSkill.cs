@@ -67,7 +67,7 @@ public class EditorWindows_CreateSkill : EditorWindow
                 return;
             }
             Editor_TableTool.SaveSkillJsonFile(skillList);
-            EditorWindows_CreateHero.RefreshSkillData();
+//            EditorWindows_CreateHero.RefreshSkillData();
         }
     }
 

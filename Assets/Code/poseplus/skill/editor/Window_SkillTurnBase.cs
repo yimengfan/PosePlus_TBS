@@ -5,428 +5,269 @@ using System.Linq;
 using System.Reflection;
 using FB.PosePlus;
 using Game.Battle.Skill;
+using Game.Data;
 using NUnit.Framework.Constraints;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
+using Skill = Game.Battle.Skill.Skill;
+
+public class SkillEditorData
+{
+    public SkillEventAttribute attr;
+    public Type classdata;
+}
 
 public class Window_SkillTurnBase : EditorWindow
 {
     private AniPlayer ani;
     private Skills skill;
 
-    private void Awake()
-    {
-        var types = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(a => a.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ISkillEventEditor))))
-            .ToArray();
-        eventDesDict.Clear();
-        foreach (Type t in types)
-        {
-            SkillEventAttribute attribute =
-                (SkillEventAttribute) t.GetCustomAttribute(typeof(SkillEventAttribute));
-            eventDesDict.Add(attribute.Name,attribute.Des);
-        }
-    }
-    
-    private Dictionary<string,string> eventDesDict = new Dictionary<string, string>();
-
     public void Show(AniPlayer ani, Skills skill)
     {
         this.skill = skill;
         this.ani = ani;
+        if (this.skill.SkillList == null)
+            this.skill.SkillList = new List<Game.Battle.Skill.Skill>();
         //var c = ani.clips[0];
+        skillEditorDict = EditorSkillTool.GetSkillEditorDict();
         this.Show();
     }
 
+    private Dictionary<string, SkillEditorData> skillEditorDict;
 
     private void OnGUI()
     {
-//        if (this.curSkill == null)
-//        {
-//            GUILayout.BeginVertical(GUILayout.Width(1200));
-//        }
-        GUILayout.BeginVertical();
-        
         GUI.SetNextControlName("RefreshFocus");
-        GUILayout.TextField("", GUILayout.Width(0),GUILayout.Height(0));
+        GUILayout.TextField("", GUILayout.Width(0), GUILayout.Height(0));
         GUILayout.BeginHorizontal(GUILayout.Height(800));
-        this.ShowSkills();
-        this.ShowSkillBlock();
-        this.EditorSkillBlock();
-        GUILayout.EndHorizontal();
-        TableToolMenu.Layout_DrawSeparator(Color.gray, 2);
-        GUILayout.EndVertical();
-    }
-
-    private void EditorSkillBlock()
-    {
-        if (this.curblock != null)
         {
-            EditorSkillTool.GetSkillEventDict(this.curblock, ref seDict); //获取当前block event组
-        }
-        else
-        {
-            seDict.Clear();
-            return;
-        }
-
-        GUILayout.BeginVertical();
-        this.ShowCurAni();
-        TableToolMenu.Layout_DrawSeparator(Color.gray, 2);
-        GUILayout.Space(10);
-        this.ShowSkillEventWindow();
-        //重组 覆盖当前block的List<SkillEvent>
-        EditorSkillTool.PushSkillEventToBlock(ref this.curblock, seDict);
-        EditorUtility.SetDirty(this.ani);
-        GUILayout.EndVertical();
-    }
-
-    private void ShowSkillEventWindow()
-    {
-        GUILayout.BeginHorizontal();
-        this.ShowEventList();
-        TableToolMenu.Layout_DrawSeparatorV(Color.gray, 2);
-        this.ShowCurEventWindow();
-        GUILayout.EndHorizontal();
-    }
-
-    private void ShowCurEventWindow()
-    {
-        //展示窗口
-        if (this.curEvent == null) return;
-        GUILayout.BeginVertical();
-        //卡卡卡卡
-//        Type t = EditorSkillTool.GetTypeBySEAttributeName(this.curEvent.EventName);
-//        ISkillEventEditor obj = (ISkillEventEditor) t.Assembly.CreateInstance(t.FullName);
-//        obj.OnGuiEditor(this.curEvent);
-        GUILayout.Label(string.Format("正在编辑第{0}帧第{1}个事件{2}", this.curframe, this.eventIndex, this.curEvent.EventName));
-        ISkillEventEditor obj;
-        if (!this.seEditorDict.TryGetValue(this.curEvent.EventName, out obj))
-        {
-            Type t = EditorSkillTool.GetTypeBySEAttributeName(this.curEvent.EventName);
-            if (t == null)
+            OnGUI_DrawSkillGroup();
+            OnGUI_DrawSkillBlock();
+            //
+            GUILayout.BeginVertical();
             {
-                Debug.LogError("不存在" + this.curEvent.EventName + "标签对应的类");
-                return;
+                OnGUI_DrawAniFrame();
+                OnGUI_DrawSkillEventWindow();
             }
-
-            obj = (ISkillEventEditor) t.Assembly.CreateInstance(t.FullName);
-            this.seEditorDict.Add(this.curEvent.EventName, obj);
+            GUILayout.EndVertical();
         }
-
-//        string str = "";
-//        EditorGUILayout.TextField("切换event点一下这个输入框", str, GUILayout.Width(200));
-        obj.OnGuiEditor(this.curEvent);
-        GUILayout.EndVertical();
+        GUILayout.EndHorizontal();
+        TableToolMenu.Layout_DrawSeparator(Color.gray, 2);
     }
 
-    //防止编辑器卡
-    private Dictionary<string, ISkillEventEditor> seEditorDict = new Dictionary<string, ISkillEventEditor>();
 
-    private int eventIndex = 0;
-    private SkillEvent curEvent;
+    #region Skill列表渲染
 
-    private void ShowEventList()
+    private int curSkillIndex = -1;
+    private Skill curSkill = null;
+
+    /// <summary>
+    /// 所有技能
+    /// </summary>
+    private void OnGUI_DrawSkillGroup()
     {
-        GUILayout.BeginVertical(GUILayout.Width(400), GUILayout.Height(500));
-        GUILayout.Label(string.Format("第{0}帧事件组", this.curframe));
-        seList = null; //当前帧对应的事件列表
-        if (!seDict.TryGetValue(this.curframe, out seList))
+        if (skill == null) return;
+        GUILayout.BeginVertical(GUILayout.Width(300), GUILayout.Height(800));
+        //保存按钮
         {
-            seList = new List<SkillEvent>();
-            seDict.Add(this.curframe, seList);
+            var oc =  GUI.backgroundColor ;
+            GUI.color = Color.yellow;
+            if (GUILayout.Button("保存" ,GUILayout.Width(100),GUILayout.Height(30)))
+            {
+                EditorUtility.SetDirty(skill);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+            }
+            // GUILayout.EndHorizontal();
+            GUI.backgroundColor  = oc;
         }
-
-        if (GUILayout.Button("新建一个skillevent"))
-        {
-            Window_SelectSkillEvent window =
-                (Window_SelectSkillEvent) EditorWindow.GetWindow(typeof(Window_SelectSkillEvent), false,
-                    "选择创建skillevent");
-            window.Show(this.curframe, this.curblock);
-        }
-
-        int count = seList.Count;
-        if (count == 0)
-        {
-            curEvent = null;
-            eventIndex = 0;
-        }
-
+        GUILayout.Label("技能列表:");
+        //显示所有按钮
+        int count = skill.SkillList.Count;
         for (int i = 0; i < count; i++)
         {
-            GUILayout.BeginHorizontal();
-            SkillEvent se = seList[i];
-
-            if (eventIndex == i)
+            if (curSkillIndex == i)
             {
                 GUI.color = Color.green;
-                curEvent = se;
             }
             else
             {
                 GUI.color = Color.white;
             }
 
-            string des;
-            if (!eventDesDict.TryGetValue(se.EventName, out des))
+            var s = skill.SkillList[i];
+            s.Id = i + 1;
+            GUILayout.BeginHorizontal(); //每一个技能的横条
             {
-                GUIStyle titleStyle2 = new GUIStyle();
-                titleStyle2.normal.textColor = new Color(1, 0, 0, 1);
-                GUILayout.Label("不存在标签:" + se.EventName, titleStyle2);
-            }
-            else
-            {
-                if (GUILayout.Button( des+ ":" + i))
+                if (GUILayout.Button(s.Id.ToString()))
                 {
-                    this.eventIndex = i;
+                    curSkillIndex = i;
+                    curSkill = s;
+                    this.curSkillblockList = curSkill.Blocks;
+
+                    curSkillblockIndex = -1;
+                    curSkillEvnetIndex = -1;
+                    curSkillblock = null;
+                    curSkillEventList = null;
+                    curAniClip = null;
+                    curSkillEventEditor = null;
+                    GUI.FocusControl("RefreshFocus");
+                }
+
+                GUI.color = GUI.backgroundColor;
+
+                if (GUILayout.Button("DEL", GUILayout.Width(35)))
+                {
+                    skill.SkillList.Remove(s);
+                    curSkillIndex = -1;
+                    curSkillblockIndex = -1;
+                    curSkillEvnetIndex = -1;
+                    curSkillblock = null;
+                    curSkillEventList = null;
+                    curAniClip = null;
+                    curSkillEventEditor = null;
+                    curSkillblockList = null;
+                    count = skill.SkillList.Count;
+
                     GUI.FocusControl("RefreshFocus");
                 }
             }
-
-            GUI.color = GUI.backgroundColor;
-            if (GUILayout.Button("del", GUILayout.Width(100)))
-            {
-                seList.Remove(se);
-                count = seList.Count;
-                if (eventIndex == i)
-                {
-                    curEvent = null;
-                    eventIndex = 0;
-                }
-            }
-
             GUILayout.EndHorizontal();
         }
 
-        GUILayout.EndVertical();
-    }
-
-    private List<SkillEvent> seList;
-
-    private Dictionary<int, List<SkillEvent>> seDict = new Dictionary<int, List<SkillEvent>>();
-
-    private void ShowCurAni()
-    {
-        GUILayout.Label("当前AniClip");
-        if (ani != null && this.curblock != null && this.curSkill != null)
+        GUILayout.Space(20);
+        if (GUILayout.Button("创建skill"))
         {
-            curClip = null;
-            foreach (AniClip clip in ani.clips)
+            if (skill.SkillList == null || skill.SkillList.Count == 0)
             {
-                if (clip.name == this.curblock.AniName)
-                {
-                    curClip = clip;
-                    break;
-                }
+                skill.SkillList = new List<Game.Battle.Skill.Skill>();
             }
 
-            //curClip = ani.clips[0];
-            if (curClip == null)
-            {
-                Debug.LogError("没有这个动作:" + this.curblock.AniName);
-                return;
-            }
+            var s = new Skill();
+//            s.Id = skill.SkillList.Count;
 
-            ShowClipFrame(curClip);
-        }
-    }
-
-    #region 显示skills
-
-    private int skillIndex = 0;
-    private Vector2 skillpos;
-    private Skill curSkill;
-
-    private void ShowSkills()
-    {
-        int count = this.skill.SkillList.Count;
-        skillpos = GUILayout.BeginScrollView(skillpos, GUILayout.Width(350), GUILayout.Height(800));
-        GUILayout.BeginVertical(GUILayout.Height(780));
-        GUILayout.Label("当前skill组");
-        if (count == 0)
-        {
-            if (GUILayout.Button("新建一个Skill",GUILayout.Width(300)))
-            {
-//                Skill sk = new Skill();
-//                sk.Blocks = new List<SkillBlock>();
-//                this.skill.SkillList.Add(sk);
-                Window_SelectSkill window =
-                    (Window_SelectSkill) EditorWindow.GetWindow(typeof(Window_SelectSkill), false, "SelectSkillID");
-                window.Show(this.skill, 0);
-            }
-        }
-
-        count = this.skill.SkillList.Count;
-        for (int i = 0; i < count; i++)
-        {
-            Skill sk = this.skill.SkillList[i];
-            GUILayout.BeginHorizontal(GUILayout.Width(300));
-            if (skillIndex == i)
-            {
-                GUI.color = Color.green;
-                curSkill = sk;
-            }
-            else
-            {
-                GUI.color = Color.white;
-            }
-
-            if (GUILayout.Button(sk.Id + ""))
-            {
-                if (skillIndex != i) this.blockIndex = 0;
-                skillIndex = i;
-                curSkill = sk;
-                GUI.FocusControl("RefreshFocus");
-            }
-
-            GUI.color = GUI.backgroundColor;
-            if (GUILayout.Button("add", GUILayout.Width(50)))
-            {
-//                Skill tp = new Skill();
-//                tp.Blocks = new List<SkillBlock>();
-//                this.skill.SkillList.Insert(i + 1, tp);
-                Window_SelectSkill window =
-                    (Window_SelectSkill) EditorWindow.GetWindow(typeof(Window_SelectSkill), false, "SelectSkillID");
-                window.Show(this.skill, i);
-            }
-
-            if (GUILayout.Button("del", GUILayout.Width(50)))
-            {
-                this.skill.SkillList.Remove(sk);
-                if (skillIndex == i)
-                {
-                    curSkill = null;
-                    skillIndex = 0;
-                }
-                else if (skillIndex > i)
-                {
-                    skillIndex--;
-                }
-            }
-
-            count = this.skill.SkillList.Count;
-
-            GUILayout.EndHorizontal();
+            skill.SkillList.Add(s);
         }
 
         GUILayout.EndVertical();
-        GUILayout.EndScrollView();
         TableToolMenu.Layout_DrawSeparatorV(Color.gray, 2);
     }
 
     #endregion
 
-    #region 显示当前skill的blocks
 
-    private Vector2 blockpos;
-    private int blockIndex = 0;
-    private SkillBlock curblock;
+    #region SkillBlock渲染
 
-    private void ShowSkillBlock()
+    private int curSkillblockIndex = -1;
+
+    //当前技能块列表
+    private List<SkillBlock> curSkillblockList = null;
+
+    /// <summary>
+    /// 当前技能块
+    /// </summary>
+    private SkillBlock curSkillblock = null;
+
+    /// <summary>
+    /// 当前技能block
+    /// </summary>
+    private void OnGUI_DrawSkillBlock()
     {
-        blockpos = GUILayout.BeginScrollView(blockpos, GUILayout.Width(320), GUILayout.Height(800));
-        GUILayout.BeginVertical( GUILayout.Height(780));
-        GUILayout.Label("当前skill对应skillblock组");
-        if (this.curSkill != null)
-            this.ShowBlockList(this.curSkill.Blocks);
-        GUILayout.EndVertical();
-        GUILayout.EndScrollView();
-        TableToolMenu.Layout_DrawSeparatorV(Color.gray, 2);
-    }
-
-    private void ShowBlockList(List<SkillBlock> blocks)
-    {
-        int count = blocks.Count;
-        if (count == 0)
+        GUILayout.BeginVertical(GUILayout.Width(300), GUILayout.Height(800));
+       
+        GUILayout.Label("技能块列表:");
+        if (curSkillblockList != null)
         {
-            curblock = null;
-            if (GUILayout.Button("新建一个Block",GUILayout.Width(300)))
-            {
-                Window_SelectAniClip window =
-                    (Window_SelectAniClip) EditorWindow.GetWindow(typeof(Window_SelectAniClip), false, "SelectAniClip");
-                window.Show(blocks, 0, this.ani);
-            }
-        }
-        else
-        {
+            int count = curSkillblockList.Count;
             for (int i = 0; i < count; i++)
             {
-                SkillBlock sb = blocks[i];
-                if (!EditorSkillTool.CheckAniExist(this.ani.clips, sb.AniName))
-                {
-                    GUIStyle titleStyle2 = new GUIStyle();
-                    titleStyle2.normal.textColor = new Color(1, 0, 0, 1);
-                    GUILayout.Label("ani不存在动作:" + sb.AniName, titleStyle2);
-                }
-
-                GUILayout.BeginHorizontal(GUILayout.Width(300));
-                if (this.blockIndex == i)
+                GUILayout.BeginVertical();
+                if (curSkillblockIndex == i)
                 {
                     GUI.color = Color.green;
-                    curblock = sb;
                 }
                 else
                 {
                     GUI.color = Color.white;
                 }
 
-                if (GUILayout.Button(sb.AniName + " index:" + i))
+                var sb = this.curSkillblockList[i];
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button(string.Format("[{0}] -" + sb.AniName, i)))
                 {
-                    blockIndex = i;
-                    curblock = sb;
-                    eventIndex = 0;
-                    curEvent = null;
-
+                    curSkillblockIndex = i;
+                    curAniClip = ani.GetClip(sb.AniName);
+                    curSkillblock = sb;
+                    curSkillEventList = EditorSkillTool.GetCurFrameEventList(this.curframe, curSkillblock);
+                    curSkillEvnetIndex = -1;
+                    curSkillEventEditor = null;
                     GUI.FocusControl("RefreshFocus");
                 }
 
                 GUI.color = GUI.backgroundColor;
-                if (GUILayout.Button("add", GUILayout.Width(50)))
+                if (GUILayout.Button("DEL", GUILayout.Width(35)))
                 {
-                    Window_SelectAniClip window =
-                        (Window_SelectAniClip) EditorWindow.GetWindow(typeof(Window_SelectAniClip), false,
-                            "SelectAniClip");
-                    window.Show(blocks, i + 1, this.ani);
-                }
+                    this.curSkillblockList.Remove(sb);
+                    count = curSkillblockList.Count;
+                    curSkillblockIndex = -1;
+                    curSkillblock = null;
+                    curSkillEventList = null;
+                    curSkillEvnetIndex = -1;
+                    curAniClip = null;
+                    curSkillEventEditor = null;
 
-                if (GUILayout.Button("del", GUILayout.Width(50)))
-                {
-                    blocks.Remove(sb);
-                    count = blocks.Count;
-                    if (blockIndex == i)
-                    {
-                        curblock = null;
-                        blockIndex = 0;
-                    }
-                    else if (blockIndex > i)
-                    {
-                        blockIndex--;
-                    }
+                    GUI.FocusControl("RefreshFocus");
                 }
 
                 GUILayout.EndHorizontal();
+
+                GUILayout.EndVertical();
             }
         }
+
+        GUILayout.Space(20);
+        if (curSkillblockList != null)
+        {
+            if (GUILayout.Button("创建skillBlock"))
+            {
+                Window_SelectAniClip window =
+                    (Window_SelectAniClip) EditorWindow.GetWindow(typeof(Window_SelectAniClip), false, "SelectAniClip");
+                window.Show(this.curSkillblockList, this.ani);
+            }
+        }
+
+        GUILayout.EndVertical();
+        
+        TableToolMenu.Layout_DrawSeparatorV(Color.gray, 2);
     }
 
     #endregion
 
 
-    #region 动画帧编辑器
+    #region 动画帧渲染
 
     private int curframe = 0;
 
     private Vector2 anipos;
 
     //当前选择的动画片段
-    private AniClip curClip = null;
+    private AniClip curAniClip = null;
 
-    private void ShowClipFrame(AniClip ani)
+    private void OnGUI_DrawAniFrame()
     {
-        GUILayout.Label("Animation pos:(" + curframe + "/" + ani.aniFrameCount + ")");
-
-        int nf = (int) GUILayout.HorizontalScrollbar(curframe, 1, 0, ani.aniFrameCount);
+        GUILayout.Label("动画播放器:");
+        var ani = curAniClip;
         anipos = EditorGUILayout.BeginScrollView(anipos, true, false, GUILayout.Height(230));
+        if (curAniClip == null)
+        {
+            EditorGUILayout.EndScrollView();
+            return;
+        }
+
+        GUILayout.Label("Animation pos:(" + curframe + "/" + ani.aniFrameCount + ")");
+        int nf = (int) GUILayout.HorizontalScrollbar(curframe, 1, 0, ani.aniFrameCount);
+
         GUILayout.BeginHorizontal();
         for (int i = 0; i < ani.aniFrameCount; i++)
         {
@@ -455,26 +296,19 @@ public class Window_SkillTurnBase : EditorWindow
 
             GUI.color = oc;
 
-            List<SkillEvent> tmp;
-            if (!this.seDict.TryGetValue(i, out tmp))
+            List<SkillEvent> tmp = EditorSkillTool.GetCurFrameEventList(i, curSkillblock);
+            if (tmp.Count == 0 || tmp == null)
             {
                 GUILayout.Space(60);
             }
             else
             {
-                if (tmp.Count == 0)
+                GUI.color = new Color(1.0f, 1f, 0f, 1.0f);
+                GUILayout.Space(39);
+                if (GUILayout.Button("e"))
                 {
-                    GUILayout.Space(60);
-                }
-                else
-                {
-                    GUI.color = new Color(1.0f, 1f, 0f, 1.0f);
-                    GUILayout.Space(39);
-                    if (GUILayout.Button("e"))
-                    {
-                        nf = i;
-                        GUI.FocusControl("RefreshFocus");
-                    }
+                    nf = i;
+                    GUI.FocusControl("RefreshFocus");
                 }
             }
 
@@ -498,7 +332,7 @@ public class Window_SkillTurnBase : EditorWindow
                     if (i == curframe)
                     {
                         SetFrame(curframe, true);
-                        EditorUtility.SetDirty(ani);
+                        // EditorUtility.SetDirty(ani);
                     }
                 }
 
@@ -550,9 +384,117 @@ public class Window_SkillTurnBase : EditorWindow
     {
         if (curframe != f || force)
         {
-            ani.SetPose(curClip, f, true);
+            ani.SetPose(curAniClip, f, true);
             curframe = f;
+            //动画编辑器 切换帧刷新curSkillEventList
+            curSkillEventList = EditorSkillTool.GetCurFrameEventList(this.curframe, curSkillblock);
         }
+    }
+
+    #endregion
+
+
+    #region SkillEvent 渲染
+
+    // 当前选中的动画帧率
+    private int curSelectClipFrame = 0;
+
+    // 当前技能事件
+    private List<SkillEvent> curSkillEventList;
+
+    /// <summary>
+    /// 当前技能帧事件
+    /// </summary>
+    private void OnGUI_DrawSkillEvent()
+    {
+        GUILayout.BeginVertical(GUILayout.Width(300),GUILayout.Height(550));
+        GUILayout.Label("技能事件列表:");
+        if (curSkillEventList != null)
+        {
+            int count = curSkillEventList.Count;
+            for (int i = 0; i < curSkillEventList.Count; i++)
+            {
+                GUILayout.BeginHorizontal();
+                if (curSkillEvnetIndex == i)
+                {
+                    GUI.color = Color.green;
+                }
+                else
+                {
+                    GUI.color = Color.white;
+                }
+
+                var e = curSkillEventList[i];
+                if (GUILayout.Button(string.Format("[{0}] " + e.EventName, i)))
+                {
+                    this.curSkillEvnetIndex = i;
+                    //TODO 需要给Editor进行赋值
+                    SkillEditorData data = skillEditorDict[e.EventName];
+                    curSkillEventEditor =
+                        (ISkillEventEditor) data.classdata.Assembly.CreateInstance(data.classdata.FullName);
+
+                    GUI.FocusControl("RefreshFocus");
+                }
+
+                GUI.color = GUI.backgroundColor;
+                if (GUILayout.Button("DEL", GUILayout.Width(35)))
+                {
+                    curSkillEventList.Remove(e);
+                    curSkillblock.Events.Remove(e);
+                    this.curSkillEvnetIndex = -1;
+                    curSkillEventEditor = null;
+                    count = curSkillEventList.Count;
+
+                    GUI.FocusControl("RefreshFocus");
+                }
+                GUILayout.EndHorizontal();
+            }
+        }
+
+        GUILayout.Space(20);
+        if (curSkillblock!=null)
+        {
+            
+            if (GUILayout.Button("添加事件"))
+            {
+                Window_SelectSkillEvent window =
+                    (Window_SelectSkillEvent) EditorWindow.GetWindow(typeof(Window_SelectSkillEvent), false,
+                        "选择创建skillevent");
+                window.Show(this.curframe, this.curSkillblock, this.curSkillEventList);
+            }
+        }
+
+        GUILayout.EndVertical();
+        TableToolMenu.Layout_DrawSeparatorV(Color.gray, 2);
+    }
+
+    private void OnGUI_DrawSkillEventWindow()
+    {
+        GUILayout.BeginHorizontal();
+        this.OnGUI_DrawSkillEvent();
+        this.OnGUI_DrawSkillEventEditor();
+        GUILayout.EndHorizontal();
+    }
+
+
+    /// 当前选中技能事件的下标
+    private int curSkillEvnetIndex = -1;
+
+    //当前编辑器
+    private ISkillEventEditor curSkillEventEditor = null;
+
+    /// <summary>
+    /// 当前技能帧事件编辑
+    /// </summary>
+    private void OnGUI_DrawSkillEventEditor()
+    {
+        if (curSkillEventEditor == null || curSkillEventList == null || curSkillEvnetIndex == -1 ||
+            curSkillEventList.Count == 0) return;
+        GUILayout.BeginVertical();
+        var se = curSkillEventEditor.OnGuiEditor(this.curSkillEventList[curSkillEvnetIndex]);
+        GUILayout.EndVertical();
+
+        this.curSkillEventList[curSkillEvnetIndex] = se;
     }
 
     #endregion

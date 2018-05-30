@@ -60,7 +60,7 @@ namespace Game.Battle
             heroMap[index] = heroFSM;
             var pos = World.GetPlayerPos(index);
             heroFSM.HeroGraphic.Trans.position = pos;
-            heroFSM.HeroLogic.ID = index;
+            heroFSM.ID = index;
             //阵营划分
             if ( heroFSM.Camp == 1)
             {
@@ -160,7 +160,7 @@ namespace Game.Battle
             //设置好player index
             foreach (var h in this.heroMap)
             {
-                h.Value.HeroLogic.ID = h.Key;
+                h.Value.ID = h.Key;
             }
             Rule.Start();
         }

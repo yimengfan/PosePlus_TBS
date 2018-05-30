@@ -18,8 +18,9 @@ public class SkillPlayer_TBS : MonoBehaviour
 
 	private bool isPlaySkill = false;
 	//攻击节奏
-	public int skillState { get; private set; }
+	public int CurSkillBlockIndex { get; private set; }
 
+	private SkillBlock curSkillBlock = null;
 
 	private void Awake()
 	{
@@ -36,18 +37,27 @@ public class SkillPlayer_TBS : MonoBehaviour
 	/// 播放技能，默认一段攻击
 	/// </summary>
 	/// <param name="id"></param>
-	/// <param name="state"></param>
-	public void PlaySkill(int id, int state)
-	{
+	/// <param name="block"></param>
+	public void PlaySkill(int id, int block)
+	{		
 		isPlaySkill = true;
-		this.skillState = state;
-		var skill = Skills.SkillList.Find((s) => s.Id == id);
-		if (skill != null)
+		this.CurSkillBlockIndex = block;
+		try
 		{
-			this.curSkill = skill;
-			var c = aniPlayer.GetClip(curSkill.Blocks[skillState].AniName);
-			aniPlayer.Play(c);
+			var skill = Skills.SkillList[id];
+			if (skill != null)
+			{
+				this.curSkill = skill;
+				curSkillBlock = curSkill.Blocks[CurSkillBlockIndex];
+				var c = aniPlayer.GetClip(curSkillBlock.AniName);
+				aniPlayer.Play(c);
+			}
 		}
+		catch (Exception e)
+		{
+			Debug.LogError( string.Format("技能数据错误: id-{0} block-{1}" , id, block) );
+		}
+
 	}
 
 	
@@ -56,12 +66,12 @@ public class SkillPlayer_TBS : MonoBehaviour
 	HashSet<int> eventCacheSet = new HashSet<int>();
 	private void Update()
 	{
-		if (isPlaySkill && aniPlayer != null && curSkill != null && lastAniFrame != aniPlayer.CurAniFrame)
+		if (isPlaySkill && aniPlayer != null && curSkill != null&&  curSkillBlock!= null && lastAniFrame != aniPlayer.CurAniFrame)
 		{
 			lastAniFrame = aniPlayer.CurAniFrame;
 
 			//event
-			var eventList = this.curSkill.Blocks[skillState].Events.FindAll((e) => (int)e.FrameId == lastAniFrame);
+			var eventList = curSkillBlock.Events.FindAll((e) => (int)e.FrameId == lastAniFrame);
 			
 			if (eventList.Count > 0)
 			{
@@ -75,12 +85,12 @@ public class SkillPlayer_TBS : MonoBehaviour
 			if (lastAniFrame == aniPlayer.CurClip.aniFrameCount -1 )
 			{
 				//当前block结束
-				if (this.skillState < this.curSkill.Blocks.Count -1)
+				if (this.CurSkillBlockIndex < this.curSkill.Blocks.Count -1)
 				{
 					this.State.TriggerEvent("CurBlockEnd");
 				}
 				//所有block结束
-				else if (this.skillState == this.curSkill.Blocks.Count -1)
+				else if (this.CurSkillBlockIndex == this.curSkill.Blocks.Count -1)
 				{
 					isPlaySkill = false;
 					this.State.TriggerEvent("AllBlockEnd");

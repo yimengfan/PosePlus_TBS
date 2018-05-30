@@ -7,6 +7,9 @@ using Game.Data;
 using System.Text.RegularExpressions;
 using System;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using UnityEngine.UI;
 
 public class Editor_TableTool
 {
@@ -23,30 +26,58 @@ public class Editor_TableTool
         return JsonMapper.ToObject<List<T>>(content);
     }
 
-    public static void GetData_HeroData(ref Dictionary<int, List<Hero>> list, string jsonName)
+    public static object Prepare_DataByName(Type t)
     {
-        list.Clear();
-        List<Hero> heroList = Prepare_DataByName<Hero>(jsonName);
-        if (heroList == null) return;
-        int index = 0;
-        for (int i = 0; i < heroList.Count; i++)
+        string jsonPath = Application.dataPath + tablePath + t.Name + ".json";
+        if (!File.Exists(jsonPath))
         {
-            List<Hero> tpList;
-            if (!list.TryGetValue(index, out tpList))
-            {
-                tpList = new List<Hero>();
-                list.Add(index, tpList);
-            }
+            UnityEditor.EditorUtility.DisplayDialog("读取失败", jsonPath + "不存在", "ok");
+            return null;
+        }
+        string content = File.ReadAllText(jsonPath);
 
-            Hero h = heroList[i];
-            tpList.Add(h);
-            if (h.NextLevel == 0)
+        Type type  = typeof(List<>);
+        type = type.MakeGenericType(t);
+        return JsonMapper.ToObject(type,content);
+    }
+
+    public static Dictionary<int, List<object>> GetData_Data<T>(string sortid)
+    {
+        //界面布局dict 1.int窗口所在行 2.List<object> 该行数据
+        Dictionary<int, List<object>> listDict = new Dictionary<int, List<object>>();
+        Type t = typeof(T);
+        List<T> list = (List<T>)Prepare_DataByName(t);
+        if (list == null) return null;
+        int index = 0;
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            List<object> tpList;
+            if (!listDict.TryGetValue(index, out tpList))
+            {
+                tpList = new List<object>();
+                listDict.Add(index, tpList);
+            }
+            object o = list[i];
+            tpList.Add(o);
+            if (sortid == "")
             {
                 index++;
             }
+            else
+            {
+                PropertyInfo pi= t.GetProperty(sortid);
+                double value = (double)pi.GetValue(o);
+                if (value == 0)
+                {
+                    index++;
+                }
+            }
         }
+        return listDict;
     }
-
+    
+  
     public static void GetData_SkillData(ref Dictionary<int, List<Skill>> list, string jsonName)
     {
         list.Clear();
@@ -126,18 +157,22 @@ public class Editor_TableTool
         SaveJson<Skill>(skills, "Skill");
     }
 
-    public static void SaveHeroJsonFile(Dictionary<int, List<Hero>> heroList)
+    public static void SaveJsonFile(List<object> list,Type target)
     {
-        List<Hero> heros = new List<Hero>();
-        foreach (KeyValuePair<int, List<Hero>> kv in heroList)
+        string listJson = JsonMapper.ToJson(list);
+        string savePath = Application.dataPath + tablePath;
+        if (!Directory.Exists(savePath))
         {
-            if (kv.Value != null && kv.Value.Count > 0)
-            {
-                heros.AddRange(kv.Value);
-            }
+            UnityEditor.EditorUtility.DisplayDialog("文件不存在", savePath + "当前路径不存在", "ok");
+            return;
         }
-        SaveJson<Hero>(heros, "HeroLogic");
+        savePath = savePath + string.Format("/{0}.json", target.Name.Trim());
+        Regex reg = new Regex(@"(?i)\\[uU]([0-9a-f]{4})");
+        var ss = reg.Replace(listJson, delegate (Match m) { return ((char)Convert.ToInt32(m.Groups[1].Value, 16)).ToString(); });
+        File.WriteAllText(savePath, ss);
+        UnityEditor.EditorUtility.DisplayDialog("成功", "保存成功=>" + savePath, "ok");
     }
+    
 
     public static void SaveBuffJsonFile(List<Buff> buffList)
     {
@@ -153,7 +188,7 @@ public class Editor_TableTool
             UnityEditor.EditorUtility.DisplayDialog("文件不存在", savePath + "当前路径不存在", "ok");
             return;
         }
-        savePath = savePath + string.Format("/{0}.json", fileName.Trim());
+        savePath = savePath + string.Format("{0}.json", fileName.Trim());
         Regex reg = new Regex(@"(?i)\\[uU]([0-9a-f]{4})");
         var ss = reg.Replace(listJson, delegate (Match m) { return ((char)Convert.ToInt32(m.Groups[1].Value, 16)).ToString(); });
         File.WriteAllText(savePath, ss);
@@ -213,14 +248,17 @@ public class Editor_TableTool
     }
 
 
-    public static bool IsRepeatHeroId(int id, Dictionary<int, List<Hero>> list)
+    public static bool IsRepeatId(object target, Dictionary<int, List<object>> list)
     {
         int index = 0;
-        foreach (KeyValuePair<int, List<Hero>> kv in list)
+        Type t = target.GetType();
+        PropertyInfo pi = t.GetProperty("Id");
+        double targetId = (double) pi.GetValue(target);
+        foreach (KeyValuePair<int, List<object>> kv in list)
         {
-            foreach (Hero h in kv.Value)
+            foreach (object o in kv.Value)
             {
-                if (h.Id == id) index++;
+                if (targetId == (double)pi.GetValue(o)) index++;
                 if (index > 1) return true;
             }
         }
@@ -400,7 +438,14 @@ public class Editor_TableTool
     public static void GetData_TableConfigData()
     {
         classDic.Clear();
-        List<TableConfig> configList = Prepare_DataByName<TableConfig>("TableConfig");
+        string jsonPath = Application.dataPath + "/Code/Game/Editors/HeroEdit/Table/TableConfig.json";
+        if (!File.Exists(jsonPath))
+        {
+            UnityEditor.EditorUtility.DisplayDialog("读取失败", jsonPath + "不存在", "ok");
+            return;
+        }
+        string content = File.ReadAllText(jsonPath);
+        List<TableConfig> configList = JsonMapper.ToObject<List<TableConfig>>(content);
         if (configList == null) return;
         for (int i = 0; i < configList.Count; i++)
         {
@@ -414,6 +459,24 @@ public class Editor_TableTool
             tpList.Add(config.Name, config);
         }
     }
+    
+    
+    public static TableConfig GetCommonCfg(string name)
+    {
+        Dictionary<string,TableConfig> cfg;
+        if (!classDic.TryGetValue(name, out cfg))
+        {
+            return null;
+        }
+
+        if (!cfg.ContainsKey("Id"))
+        {
+            return null;
+        }
+
+        return cfg["Id"];
+    }
+
 
     public static Dictionary<string, TableConfig> GetClassDrawConfig(string className)
     {
@@ -427,6 +490,127 @@ public class Editor_TableTool
         {
             return dict;
         }
+    }
+
+    public static object CreateInstance(Type t)
+    {
+        PropertyInfo[] pArr = t.GetProperties();
+        object obj = Activator.CreateInstance(t);
+        //简单初始化
+        foreach (PropertyInfo pi in pArr)
+        {
+            Type pt = pi.PropertyType;
+            if (pt.IsGenericType)
+            {
+                Type childType = pt.GetGenericArguments()[0];
+                if (childType.Equals(typeof(string)))
+                {
+                    pi.SetValue(obj,new List<string>());
+                }
+                else if (childType.Equals(typeof(double)))
+                {
+                    pi.SetValue(obj,new List<double>());
+                }
+            }
+        }
+        return obj;
+    }
+    
+    public static List<object> GetData<T>()
+    {
+        Type t = typeof(T);
+        List<T> list = (List<T>)Prepare_DataByName(t);
+        List<object> objList = new List<object>();
+        foreach (object obj in list)
+        {
+            objList.Add(obj);
+        }
+        return objList;
+    }
+
+    public static int GetMaxId(List<object> list)
+    {
+        int max = 0;
+        foreach (object obj in list)
+        {
+            PropertyInfo pi = obj.GetType().GetProperty("Id");
+            double tmp = (double) pi.GetValue(obj);
+            max = Math.Max(max, (int)tmp);
+        }
+
+        return max;
+    }
+    
+    public static bool IsRepeatId(List<object> list,Type t)
+    {
+        PropertyInfo pi = t.GetProperty("Id");
+        if(list.GroupBy(x=>(double)pi.GetValue(x)).Where(x => x.Count() > 1).ToList().Count() > 0) return true;
+        return false;
+    }
+
+
+    public static bool CheckForeignKey(List<object> list,Type t)
+    {
+        //当前数据对象拥有外键属性的列表
+        List<TableConfig> tList = GetForignKeyList(t.Name);
+        foreach (TableConfig tc in tList)
+        {
+            string[] tmpArr = tc.ForeignKey.Split('.');
+            Type tmpT = DrawTableType.GetTypeByName(tmpArr[0]);
+            //外键表的json数据
+            object datas = Prepare_DataByName(tmpT);
+            //json数据列表
+            List<double> dataList = ObjectToForeignList(datas,tmpArr[1],tmpT);
+            //比较原列表(list)中的外键是否都存在在 外键表(dataList)中
+            PropertyInfo pi = t.GetProperty(tc.Name);
+            foreach (object obj in list)
+            {
+                List<double> source = (List<double>) pi.GetValue(obj);
+                foreach (double id in source)
+                {
+                    //源数据中的数据不存在外键表数据中时 返回false;
+                    if (!dataList.Contains((id))) return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public static List<double> ObjectToForeignList(object datas,string foreignkey,Type t)
+    {
+        //jsonmapper object 取出比对的数据列表 List<double>
+        List<double> result = new List<double>();
+        var objs = datas as ICollection;
+        foreach (object obj in objs)
+        {
+            PropertyInfo pi = t.GetProperty(foreignkey);
+            double value = (double) pi.GetValue(obj);
+            result.Add(value);
+        }
+
+        return result;
+    }
+    
+    public static List<TableConfig> GetForignKeyList(string className)
+    {
+        List<TableConfig> tb = new List<TableConfig>();
+        Dictionary<string, TableConfig> dict;
+        if (!classDic.TryGetValue(className, out dict))
+        {
+            Debug.LogError("生成失败 " + className + " 没有对应的tableconfig配置");
+            return tb;
+        }
+
+        foreach (TableConfig tc in dict.Values)
+        {
+            if (!string.IsNullOrEmpty(tc.ForeignKey))
+            {
+                tb.Add(tc);
+            }
+        }
+
+        return tb;
     }
 
 }
