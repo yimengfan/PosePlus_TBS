@@ -1,5 +1,6 @@
 # PosePlus_TBS
-### 本项目为PosePlus的回合制战斗游戏实现,PosePlus 持续维护中 https://github.com/yimengfan/PosePlus_1.0
+### 本项目为PosePlus的回合制战斗游戏实现
+<br>PosePlus 持续维护中 https://github.com/yimengfan/PosePlus_1.0
 ## 附送如下大礼包：  
 1.PosePlus持续维护版本  
 2.基于BDFrameWork的项目实现：https://github.com/yimengfan/BDFramework.Core  觉得舒爽帮忙start~  
