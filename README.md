@@ -12,5 +12,15 @@
 ## 以下为教学视频4连：
 https://www.bilibili.com/video/av23948137/
 
- 
-# The End：我们项目组现在招初中级程序员，魔都上市公司，ip项目新启动。有意者邮件发我邮箱：755737878@qq.com。（2018.5.26）
+# 回合制战斗 编辑器展示:
+<br>![Image text](https://github.com/yimengfan/PosePlus_1.0/blob/master/img/tbs1.jpg)
+<br>![Image text](https://github.com/yimengfan/PosePlus_1.0/blob/master/img/tbs2.jpg)
+<br>![Image text](https://github.com/yimengfan/PosePlus_1.0/blob/master/img/tbs3.jpg)
+<br>![Image text](https://github.com/yimengfan/PosePlus_1.0/blob/master/img/tbs4.jpg)
+
+# 格斗 编辑器展示：
+<br>![Image text](https://github.com/yimengfan/PosePlus_1.0/blob/master/img/ftg1.jpg)
+<br>![Image text](https://github.com/yimengfan/PosePlus_1.0/blob/master/img/ftg2.jpg)
+<br>![Image text](https://github.com/yimengfan/PosePlus_1.0/blob/master/img/ftg3.jpg)
+<br>![Image text](https://github.com/yimengfan/PosePlus_1.0/blob/master/img/ftg4.jpg)
+
