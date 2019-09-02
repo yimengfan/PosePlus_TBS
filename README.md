@@ -1,5 +1,5 @@
 # PosePlus_TBS
-# 本项目为PosePlus的回合制战斗游戏实现
+### 本项目为PosePlus的回合制战斗游戏实现，早期设计，略low，现在改为cs架构设计，不日更新之
 ### PosePlus持续维护版本: https://github.com/yimengfan/PosePlus_1.0
 ## 附送如下大礼包：  
 1.PosePlus持续维护版本  
